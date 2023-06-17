@@ -1,7 +1,13 @@
 [package]
-name = "arcanum"
+name = "arcanum-sdk"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+keywords = ["web3", "arcanum", "sdk", "swap", "ethers"]
+homepage = "https://arcanum.to"
+repository = "https://github.com/arcanum-protocol/arcanum-sdk-rs"
+readme = "README.md"
+description = "An SDK for arcanum protocol written in rust"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
