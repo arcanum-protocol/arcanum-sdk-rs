@@ -58,12 +58,12 @@ impl Num {
         *self == Self::ZERO
     }
 
-    pub fn pow(&self, exp: U256) -> Num {
-        self.value.pow(exp).into()
+    pub fn pow2(&self) -> Num {
+        *self * *self
     }
 
     pub fn sqrt(&self) -> Num {
-        self.value.integer_sqrt().into()
+        ((self.value * Self::DENOMINATOR).integer_sqrt()).into()
     }
 
     // Round self value by using the given base.
@@ -227,6 +227,13 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    pub fn test_sqrt() {
+        assert_eq!(Num::from("16").sqrt(), Num::from("4"));
+        assert_eq!(Num::from("0.16").sqrt(), Num::from("0.4"));
+        assert_eq!(Num::from("0.0016").sqrt(), Num::from("0.04"));
+    }
 
     #[test]
     pub fn test_from_str() {

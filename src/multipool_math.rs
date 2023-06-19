@@ -1,5 +1,6 @@
-use crate::num::{num::Num, snum::SNum, uint256::U256};
+use crate::num::{num::Num, snum::SNum};
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MpContext {
     pub total_current_usd_amount: Num,
     pub total_asset_percents: Num,
@@ -9,12 +10,20 @@ pub struct MpContext {
     pub user_cashback_balance: Num,
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MpAsset {
     pub quantity: Num,
     pub price: Num,
     pub collected_fees: Num,
     pub collected_cashbacks: Num,
     pub percent: Num,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum MpError {
+    NoCurveSolutions,
+    DeviationBiggerThanLimit,
+    InsufficientBurnQuantity,
 }
 
 pub struct MpContextSigned {
@@ -78,14 +87,14 @@ pub fn get_utilisable_mint_quantity(
             + cp * m * context.total_current_usd_amount;
         let c = t * supplied_quantity - dlm * context.total_current_usd_amount * supplied_quantity;
 
-        let d = b.pow(U256::from(2)) - SNum::from("4") * a * c;
+        let d = b.pow2() - SNum::from("4") * a * c;
 
         let cmp = -(asset.quantity * asset.price
             + context.total_current_usd_amount * (m - SNum::from("1")))
             / (m * asset.price);
 
-        if d > SNum::ZERO {
-            let d = d.sqrt();
+        if d >= SNum::ZERO {
+            let d: SNum = d.sqrt().into();
             let x1 = (-b - d) / SNum::from("2") / a;
             let x2 = (-b + d) / SNum::from("2") / a;
 
@@ -105,16 +114,16 @@ pub fn get_utilisable_mint_quantity(
         let b = dlm * (context.total_current_usd_amount * bf - supplied_quantity * asset.price)
             + (bf - cp) * t
             - cp * m * context.total_current_usd_amount;
-        let c = t * supplied_quantity - dlm * context.total_current_usd_amount * supplied_quantity;
+        let c = -t * supplied_quantity - dlm * context.total_current_usd_amount * supplied_quantity;
 
-        let d = b.pow(U256::from(2)) - SNum::from("4") * a * c;
+        let d = b.pow2() - SNum::from("4") * a * c;
 
         let cmp = -(asset.quantity * asset.price
             + context.total_current_usd_amount * (m - SNum::from("1")))
             / (m * asset.price);
 
-        if d > SNum::ZERO {
-            let d = d.sqrt();
+        if d >= SNum::ZERO {
+            let d: SNum = d.sqrt().into();
             let x1 = (-b - d) / SNum::from("2") / a;
             let x2 = (-b + d) / SNum::from("2") / a;
 
@@ -151,12 +160,12 @@ pub fn get_suppliable_burn_quantity(
             + t * utilisable_quantity * (bf - cp)
             - cp * m * context.total_current_usd_amount * utilisable_quantity;
 
-        let cmp = (t + m * t) / (m * asset.price);
+        let cmp = (t + m * context.total_current_usd_amount) / (m * asset.price);
 
-        let d = b.pow(U256::from(2)) - SNum::from("4") * a * c;
+        let d = b.pow2() - SNum::from("4") * a * c;
 
         if d > SNum::ZERO {
-            let d = d.sqrt();
+            let d: SNum = d.sqrt().into();
             let x1 = (-b - d) / SNum::from("2") / a;
             let x2 = (-b + d) / SNum::from("2") / a;
 
@@ -195,12 +204,12 @@ pub fn get_suppliable_burn_quantity(
             + t * utilisable_quantity * (bf - cp)
             - cp * m * context.total_current_usd_amount * utilisable_quantity;
 
-        let cmp = (t + m * t) / (m * asset.price);
+        let cmp = (t + m * context.total_current_usd_amount) / (m * asset.price);
 
-        let d = b.pow(U256::from(2)) - SNum::from("4") * a * c;
+        let d = b.pow2() - SNum::from("4") * a * c;
 
         if d > SNum::ZERO {
-            let d = d.sqrt();
+            let d: SNum = d.sqrt().into();
             let x1 = (-b - d) / SNum::from("2") / a;
             let x2 = (-b + d) / SNum::from("2") / a;
 
@@ -255,11 +264,16 @@ pub fn calculate_deviation_burn(
 }
 
 impl MpContext {
-    pub fn mint_rev(context: &mut MpContext, asset: &mut MpAsset, utilisable_quantity: Num) -> Num {
+    pub fn mint_rev(
+        &mut self,
+        asset: &mut MpAsset,
+        utilisable_quantity: Num,
+    ) -> Result<Num, MpError> {
+        let context = self;
         if context.total_current_usd_amount.is_zero() {
             context.total_current_usd_amount = utilisable_quantity * asset.price;
-            asset.quantity = asset.quantity + utilisable_quantity;
-            return utilisable_quantity;
+            asset.quantity += utilisable_quantity;
+            return Ok(utilisable_quantity);
         }
         let supplied_quantity;
         let deviation_new = calculate_deviation_mint(utilisable_quantity, asset, context);
@@ -276,10 +290,9 @@ impl MpContext {
             supplied_quantity =
                 utilisable_quantity + utilisable_quantity * context.operation_base_fee;
         } else {
-            assert!(
-                deviation_new < context.deviation_percent_limit,
-                "deviation overflows limit"
-            );
+            if deviation_new > context.deviation_percent_limit {
+                return Err(MpError::DeviationBiggerThanLimit);
+            }
 
             let collected_deviation_fee = context.curve_coef * deviation_new * utilisable_quantity
                 / context.deviation_percent_limit
@@ -292,14 +305,18 @@ impl MpContext {
         asset.quantity += utilisable_quantity;
         context.total_current_usd_amount += utilisable_quantity * asset.price;
         asset.collected_fees += utilisable_quantity * context.operation_base_fee;
-        return supplied_quantity;
+        return Ok(supplied_quantity);
     }
 
-    pub fn burn_rev(context: &mut MpContext, asset: &mut MpAsset, utilisable_quantity: Num) -> Num {
-        assert!(
-            utilisable_quantity < asset.quantity,
-            "can't burn more assets than exist"
-        );
+    pub fn burn_rev(
+        &mut self,
+        asset: &mut MpAsset,
+        utilisable_quantity: Num,
+    ) -> Result<Num, MpError> {
+        let context = self;
+        if utilisable_quantity > asset.quantity {
+            return Err(MpError::InsufficientBurnQuantity);
+        }
 
         let with_fees = get_suppliable_burn_quantity(
             utilisable_quantity.into(),
@@ -311,16 +328,15 @@ impl MpContext {
 
         let supplied_quantity;
 
-        let deviation_with_fees = calculate_deviation_burn(utilisable_quantity, asset, context);
-        let deviation_no_fees = calculate_deviation_burn(utilisable_quantity, asset, context);
+        let deviation_with_fees = calculate_deviation_burn(with_fees, asset, context);
+        let deviation_no_fees = calculate_deviation_burn(no_fees, asset, context);
         let deviation_old = calculate_deviation_burn(Num::ZERO, asset, context);
 
         if deviation_no_fees <= deviation_old {
             supplied_quantity = no_fees;
-            assert!(
-                supplied_quantity < asset.quantity,
-                "can't burn more assets than exist"
-            );
+            if supplied_quantity > asset.quantity {
+                return Err(MpError::InsufficientBurnQuantity);
+            }
             let cashback = if !deviation_old.is_zero() {
                 asset.collected_cashbacks * (deviation_old - deviation_no_fees) / deviation_old
             } else {
@@ -330,41 +346,42 @@ impl MpContext {
             context.user_cashback_balance += cashback;
         } else {
             supplied_quantity = with_fees;
-            assert!(
-                supplied_quantity < asset.quantity,
-                "can't burn more assets than exist"
-            );
-            assert!(
-                deviation_with_fees < context.deviation_percent_limit,
-                "deviation overflows limit"
-            );
-            assert!(!with_fees.is_zero(), "no curve solutions found");
+            if supplied_quantity > asset.quantity {
+                return Err(MpError::InsufficientBurnQuantity);
+            }
+            if deviation_with_fees > context.deviation_percent_limit {
+                return Err(MpError::DeviationBiggerThanLimit);
+            }
+            if with_fees.is_zero() {
+                return Err(MpError::NoCurveSolutions);
+            }
 
             asset.collected_cashbacks += supplied_quantity
                 - utilisable_quantity
                 - utilisable_quantity * context.operation_base_fee;
         }
-        asset.quantity += utilisable_quantity;
-        context.total_current_usd_amount += utilisable_quantity * asset.price;
+        asset.quantity -= supplied_quantity;
+        context.total_current_usd_amount -= supplied_quantity * asset.price;
         asset.collected_fees += utilisable_quantity * context.operation_base_fee;
-        return supplied_quantity;
+        return Ok(supplied_quantity);
     }
 
-    pub fn mint(context: &mut MpContext, asset: &mut MpAsset, supplied_quantity: Num) -> Num {
+    pub fn mint(&mut self, asset: &mut MpAsset, supplied_quantity: Num) -> Result<Num, MpError> {
+        let context = self;
         if context.total_current_usd_amount.is_zero() {
             context.total_current_usd_amount = supplied_quantity * asset.price;
-            asset.quantity = asset.quantity + supplied_quantity;
-            return supplied_quantity;
+            asset.quantity += supplied_quantity;
+            return Ok(supplied_quantity);
         }
-        let mut utilisable_quantity = Num::ZERO;
+        let utilisable_quantity;
 
         let with_fees =
             get_utilisable_mint_quantity(supplied_quantity.into(), &asset.sign(), &context.sign())
                 .abs();
         let no_fees = supplied_quantity / (Num::from("1") + context.operation_base_fee);
 
-        let deviation_with_fees = calculate_deviation_mint(utilisable_quantity, asset, context);
-        let deviation_no_fees = calculate_deviation_mint(utilisable_quantity, asset, context);
+        let deviation_with_fees = calculate_deviation_mint(with_fees, asset, context);
+        let deviation_no_fees = calculate_deviation_mint(no_fees, asset, context);
         let deviation_old = calculate_deviation_mint(Num::ZERO, asset, context);
 
         if deviation_no_fees <= deviation_old {
@@ -378,11 +395,12 @@ impl MpContext {
             context.user_cashback_balance += cashback;
         } else {
             utilisable_quantity = with_fees;
-            assert!(
-                deviation_with_fees < context.deviation_percent_limit,
-                "deviation overflows limit"
-            );
-            assert!(!with_fees.is_zero(), "no curve solutions found");
+            if deviation_with_fees > context.deviation_percent_limit {
+                return Err(MpError::DeviationBiggerThanLimit);
+            }
+            if with_fees.is_zero() {
+                return Err(MpError::NoCurveSolutions);
+            }
 
             asset.collected_cashbacks += supplied_quantity
                 - utilisable_quantity
@@ -391,19 +409,19 @@ impl MpContext {
         asset.quantity += utilisable_quantity;
         context.total_current_usd_amount += utilisable_quantity * asset.price;
         asset.collected_fees += utilisable_quantity * context.operation_base_fee;
-        return utilisable_quantity;
+        return Ok(utilisable_quantity);
     }
 
-    pub fn burn(context: &mut MpContext, asset: &mut MpAsset, supplied_quantity: Num) -> Num {
-        assert!(
-            supplied_quantity < asset.quantity,
-            "can't burn more assets than exist"
-        );
+    pub fn burn(&mut self, asset: &mut MpAsset, supplied_quantity: Num) -> Result<Num, MpError> {
+        let context = self;
+        if supplied_quantity > asset.quantity {
+            return Err(MpError::InsufficientBurnQuantity);
+        }
 
         let utilisable_quantity;
 
-        let deviation_new = calculate_deviation_mint(supplied_quantity, asset, context);
-        let deviation_old = calculate_deviation_mint(Num::ZERO, asset, context);
+        let deviation_new = calculate_deviation_burn(supplied_quantity, asset, context);
+        let deviation_old = calculate_deviation_burn(Num::ZERO, asset, context);
 
         if deviation_new <= deviation_old {
             let cashback = if !deviation_old.is_zero() {
@@ -413,26 +431,25 @@ impl MpContext {
             };
             asset.collected_cashbacks -= cashback;
             context.user_cashback_balance += cashback;
-            utilisable_quantity = supplied_quantity / (Num::from(1) + context.operation_base_fee);
+            utilisable_quantity = supplied_quantity / (Num::from("1") + context.operation_base_fee);
         } else {
-            assert!(
-                deviation_new < context.deviation_percent_limit,
-                "deviation overflows limit"
-            );
+            if deviation_new > context.deviation_percent_limit {
+                return Err(MpError::DeviationBiggerThanLimit);
+            }
 
             let fee_ratio = context.curve_coef * deviation_new
                 / context.deviation_percent_limit
                 / (context.deviation_percent_limit - deviation_new);
             utilisable_quantity =
-                supplied_quantity / (Num::from(1) + fee_ratio + context.operation_base_fee);
+                supplied_quantity / (Num::from("1") + fee_ratio + context.operation_base_fee);
 
             asset.collected_cashbacks += supplied_quantity
                 - utilisable_quantity
                 - utilisable_quantity * context.operation_base_fee;
         }
-        asset.quantity += utilisable_quantity;
-        context.total_current_usd_amount += utilisable_quantity * asset.price;
+        asset.quantity -= supplied_quantity;
+        context.total_current_usd_amount -= supplied_quantity * asset.price;
         asset.collected_fees += utilisable_quantity * context.operation_base_fee;
-        return utilisable_quantity;
+        return Ok(utilisable_quantity);
     }
 }

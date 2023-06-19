@@ -1,4 +1,4 @@
-use super::{num::Num, uint256::U256};
+use super::num::Num;
 use borsh::{self, BorshDeserialize, BorshSerialize};
 use serde::{
     de,
@@ -60,11 +60,11 @@ impl SNum {
         }
     }
 
-    pub fn pow(&self, exp: U256) -> SNum {
-        self.value.pow(exp).into()
+    pub fn pow2(&self) -> SNum {
+        self.value.pow2().into()
     }
 
-    pub fn sqrt(&self) -> SNum {
+    pub fn sqrt(&self) -> Num {
         self.value.sqrt().into()
     }
 
