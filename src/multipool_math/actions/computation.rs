@@ -30,7 +30,6 @@ impl<A: MpAdapter> ActionSettings<A> {
                 amount_in_max = match self.slippage {
                     Some(s) => match s {
                         Slippage::Percent(p) => amount_in + amount_in * p,
-                        Slippage::Price(_p) => todo!(),
                     },
                     None => amount_in,
                 }
@@ -84,7 +83,6 @@ impl<A: MpAdapter> ActionSettings<A> {
                 amount_out_min = match self.slippage {
                     Some(s) => match s {
                         Slippage::Percent(p) => amount_out + amount_out * p,
-                        Slippage::Price(_p) => todo!(),
                     },
                     None => amount_out,
                 }
@@ -155,7 +153,6 @@ impl<A: MpAdapter> ActionSettings<A> {
                 amount_out_min = match self.slippage {
                     Some(s) => match s {
                         Slippage::Percent(p) => amount_out + amount_out * p,
-                        Slippage::Price(_p) => todo!(),
                     },
                     None => amount_out,
                 };
@@ -179,7 +176,6 @@ impl<A: MpAdapter> ActionSettings<A> {
                 amount_in_max = match self.slippage {
                     Some(s) => match s {
                         Slippage::Percent(p) => amount_in + amount_in * p,
-                        Slippage::Price(_p) => todo!(),
                     },
                     None => amount_out,
                 };
