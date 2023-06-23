@@ -1,4 +1,4 @@
-use super::adapter::{MockedAdapter, MpAdapter};
+use crate::multipool_math::actions::adapter::{MockedAdapter, MpAdapter};
 use crate::multipool_math::{MpAsset, MpContext};
 
 #[test]
