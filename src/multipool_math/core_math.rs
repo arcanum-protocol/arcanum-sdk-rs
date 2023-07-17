@@ -1,3 +1,5 @@
+use ethers::types::U256;
+
 use crate::num::{num::Num, snum::SNum};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -10,6 +12,19 @@ pub struct MpContext {
     pub user_cashback_balance: Num,
 }
 
+impl From<(U256, U256, U256, U256, U256, U256)> for MpContext {
+    fn from(v: (U256, U256, U256, U256, U256, U256)) -> Self {
+        MpContext {
+            total_current_usd_amount: v.0.into(),
+            total_asset_percents: v.1.into(),
+            curve_coef: v.2.into(),
+            deviation_percent_limit: v.3.into(),
+            operation_base_fee: v.4.into(),
+            user_cashback_balance: v.5.into(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MpAsset {
     pub quantity: Num,
@@ -17,6 +32,18 @@ pub struct MpAsset {
     pub collected_fees: Num,
     pub collected_cashbacks: Num,
     pub percent: Num,
+}
+
+impl From<(U256, U256, U256, U256, U256)> for MpAsset {
+    fn from(v: (U256, U256, U256, U256, U256)) -> Self {
+        MpAsset {
+            quantity: v.0.into(),
+            price: v.1.into(),
+            collected_fees: v.2.into(),
+            collected_cashbacks: v.3.into(),
+            percent: v.4.into(),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]

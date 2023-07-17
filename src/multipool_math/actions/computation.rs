@@ -1,11 +1,11 @@
-use super::settings::{BurnTxnParams, MintTxnParams, SwapTxnParams};
+use super::settings::{MintBurnTxnParams, SwapTxnParams};
 use crate::num::num::Num;
 
 use super::adapter::MpAdapter;
 use super::{settings::ActionSettings, Deadline, SidedQuantity, Slippage};
 
 impl<A: MpAdapter> ActionSettings<A> {
-    pub fn mint(mut self) -> Self {
+    pub async fn mint(mut self) -> Self {
         let adapter = self.adapter.as_mut().expect("adapter not set");
         let mut context = self.context.as_ref().expect("context not set").clone();
         let total_supply = self.total_supply.expect("total supply not set").clone();
@@ -38,23 +38,23 @@ impl<A: MpAdapter> ActionSettings<A> {
         let deadline = match self.deadline {
             Some(dl) => match dl {
                 Deadline::Block(b) => b,
-                Deadline::BlockInterval(i) => adapter.get_current_block() + i,
+                Deadline::BlockInterval(i) => adapter.get_current_block().await + i,
             },
             None => Num::ZERO,
         };
-        self.mint_params = Some(MintTxnParams {
+        self.mint_params = Some(MintBurnTxnParams {
             pool_address: self
                 .pool_address
                 .as_ref()
                 .expect("pool address not set")
                 .to_owned(),
-            asset_in_address: self
+            asset_address: self
                 .asset_in_address
                 .as_ref()
                 .expect("asset in address not set")
                 .to_owned(),
             shares,
-            amount_in_max,
+            amount: amount_in_max,
             receiver_address: self
                 .receiver_address
                 .as_ref()
@@ -65,7 +65,7 @@ impl<A: MpAdapter> ActionSettings<A> {
         self
     }
 
-    pub fn burn(mut self) -> Self {
+    pub async fn burn(mut self) -> Self {
         let adapter = self.adapter.as_mut().expect("adapter not set");
         let mut context = self.context.as_ref().expect("context not set").clone();
         let total_supply = self.total_supply.expect("total supply not set").clone();
@@ -98,23 +98,23 @@ impl<A: MpAdapter> ActionSettings<A> {
         let deadline = match self.deadline {
             Some(dl) => match dl {
                 Deadline::Block(b) => b,
-                Deadline::BlockInterval(i) => adapter.get_current_block() + i,
+                Deadline::BlockInterval(i) => adapter.get_current_block().await + i,
             },
             None => Num::ZERO,
         };
-        self.burn_params = Some(BurnTxnParams {
+        self.burn_params = Some(MintBurnTxnParams {
             pool_address: self
                 .pool_address
                 .as_ref()
                 .expect("pool address not set")
                 .to_owned(),
-            asset_out_address: self
+            asset_address: self
                 .asset_out_address
                 .as_ref()
                 .expect("asset out address not set")
                 .to_owned(),
             shares,
-            amount_out_min,
+            amount: amount_out_min,
             receiver_address: self
                 .receiver_address
                 .as_ref()
@@ -125,7 +125,7 @@ impl<A: MpAdapter> ActionSettings<A> {
         self
     }
 
-    pub fn swap(mut self) -> Self {
+    pub async fn swap(mut self) -> Self {
         let adapter = self.adapter.as_mut().expect("adapter not set");
         let mut context = self.context.as_ref().expect("context not set").clone();
         let total_supply = self.total_supply.expect("total supply not set").clone();
@@ -185,7 +185,7 @@ impl<A: MpAdapter> ActionSettings<A> {
         let deadline = match self.deadline {
             Some(dl) => match dl {
                 Deadline::Block(b) => b,
-                Deadline::BlockInterval(i) => adapter.get_current_block() + i,
+                Deadline::BlockInterval(i) => adapter.get_current_block().await + i,
             },
             None => Num::ZERO,
         };
@@ -206,8 +206,8 @@ impl<A: MpAdapter> ActionSettings<A> {
                 .expect("asset in address not set")
                 .to_owned(),
             shares,
-            amount_out_min,
-            amount_in_max,
+            amount_out: amount_out_min,
+            amount_in: amount_in_max,
             receiver_address: self
                 .receiver_address
                 .as_ref()

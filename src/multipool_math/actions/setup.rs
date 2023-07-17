@@ -1,5 +1,4 @@
 use crate::num::num::Num;
-
 use super::adapter::MpAdapter;
 use super::{settings::ActionSettings, Deadline, SidedQuantity, Slippage};
 
@@ -21,7 +20,13 @@ impl<A: MpAdapter> ActionSettings<A> {
             burn_params: None,
             swap_params: None,
             adapter: Some(adapter),
+            router_address: None
         }
+    }
+
+    pub fn router_address(mut self, val: String) -> Self {
+        self.router_address = Some(val);
+        self
     }
 
     pub fn amount_in<V: Into<Num>>(mut self, val: V) -> Self {
@@ -69,13 +74,15 @@ impl<A: MpAdapter> ActionSettings<A> {
         self
     }
 
-    pub fn fetch(mut self) -> Self {
+    pub async fn fetch(mut self) -> Self {
         let adapter = self.adapter.as_mut().expect("adapter not set");
         self.context = adapter
-            .get_context(self.pool_address.as_ref().expect("pool address not set"))
+            .get_trading_context(self.pool_address.as_ref().expect("pool address not set"))
+            .await
             .ok();
         self.total_supply = adapter
             .get_total_supply(&self.pool_address.as_ref().expect("pool address not set"))
+            .await
             .ok();
         self.asset_in = adapter
             .get_asset(
@@ -85,6 +92,7 @@ impl<A: MpAdapter> ActionSettings<A> {
                     .as_ref()
                     .expect("asset in address not set"),
             )
+            .await
             .ok();
         self.asset_out = adapter
             .get_asset(
@@ -94,34 +102,44 @@ impl<A: MpAdapter> ActionSettings<A> {
                     .as_ref()
                     .expect("asset out address not set"),
             )
+            .await
             .ok();
         self
     }
 
-    pub fn send_mint(&mut self) -> A::MintTxnResult {
+    pub async fn send_mint(&mut self) -> A::MintTxnResult {
         let adapter = self.adapter.as_mut().expect("adapter not set");
-        adapter.transact_mint(
-            self.mint_params
-                .as_ref()
-                .expect("params are not calculated"),
-        )
+        adapter
+            .transact_mint(
+                self.router_address.as_ref().expect("Router address is not set"),
+                self.mint_params
+                    .as_ref()
+                    .expect("params are not calculated"),
+            )
+            .await
     }
 
-    pub fn send_burn(&mut self) -> A::BurnTxnResult {
+    pub async fn send_burn(&mut self) -> A::BurnTxnResult {
         let adapter = self.adapter.as_mut().expect("adapter not set");
-        adapter.transact_burn(
-            self.burn_params
-                .as_ref()
-                .expect("params are not calculated"),
-        )
+        adapter
+            .transact_burn(
+                self.router_address.as_ref().expect("Router address is not set"),
+                self.burn_params
+                    .as_ref()
+                    .expect("params are not calculated"),
+            )
+            .await
     }
 
-    pub fn send_swap(&mut self) -> A::SwapTxnResult {
+    pub async fn send_swap(&mut self) -> A::SwapTxnResult {
         let adapter = self.adapter.as_mut().expect("adapter not set");
-        adapter.transact_swap(
-            self.swap_params
-                .as_ref()
-                .expect("params are not calculated"),
-        )
+        adapter
+            .transact_swap(
+                self.router_address.as_ref().expect("Router address is not set"),
+                self.swap_params
+                    .as_ref()
+                    .expect("params are not calculated"),
+            )
+            .await
     }
 }

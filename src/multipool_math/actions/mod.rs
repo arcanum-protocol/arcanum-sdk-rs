@@ -2,8 +2,6 @@ pub mod adapter;
 pub mod computation;
 pub mod settings;
 pub mod setup;
-#[cfg(test)]
-pub mod tests;
 
 use crate::num::num::Num;
 
