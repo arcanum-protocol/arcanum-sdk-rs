@@ -199,6 +199,24 @@ impl From<U256> for Num {
     }
 }
 
+impl From<Num> for ethers::types::U256 {
+    fn from(value: Num) -> Self {
+        let mut b = [];
+        value.value.to_big_endian(&mut b);
+        ethers::types::U256::from_big_endian(&b)
+    }
+}
+
+impl From<ethers::types::U256> for Num {
+    fn from(value: ethers::types::U256) -> Self {
+        let mut b = [];
+        value.to_big_endian(&mut b);
+        Self {
+            value: U256::from_big_endian(&b),
+        }
+    }
+}
+
 impl From<u128> for Num {
     fn from(value: u128) -> Self {
         Num {
@@ -216,6 +234,12 @@ impl From<Num> for u128 {
 impl From<&str> for Num {
     fn from(value: &str) -> Self {
         cast_float_to_integer(value, Self::DECIMALS).into()
+    }
+}
+
+impl From<String> for Num {
+    fn from(value: String) -> Self {
+        cast_float_to_integer(value.as_str(), Self::DECIMALS).into()
     }
 }
 

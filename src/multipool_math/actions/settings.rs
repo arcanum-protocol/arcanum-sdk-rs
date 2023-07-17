@@ -18,29 +18,20 @@ pub struct ActionSettings<A: MpAdapter> {
     pub receiver_address: Option<String>,
     pub deadline: Option<Deadline>,
     // calculations outcome to send to router
-    pub mint_params: Option<MintTxnParams>,
-    pub burn_params: Option<BurnTxnParams>,
+    pub mint_params: Option<MintBurnTxnParams>,
+    pub burn_params: Option<MintBurnTxnParams>,
     pub swap_params: Option<SwapTxnParams>,
     // adapter that lets you operate data fetching and other things
     pub adapter: Option<A>,
+    pub router_address: Option<String>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MintTxnParams {
+pub struct MintBurnTxnParams {
     pub pool_address: String,
-    pub asset_in_address: String,
+    pub asset_address: String,
     pub shares: Num,
-    pub amount_in_max: Num,
-    pub receiver_address: String,
-    pub deadline: Num,
-}
-
-#[derive(Clone, Debug)]
-pub struct BurnTxnParams {
-    pub pool_address: String,
-    pub asset_out_address: String,
-    pub shares: Num,
-    pub amount_out_min: Num,
+    pub amount: Num,
     pub receiver_address: String,
     pub deadline: Num,
 }
@@ -51,8 +42,8 @@ pub struct SwapTxnParams {
     pub asset_in_address: String,
     pub asset_out_address: String,
     pub shares: Num,
-    pub amount_in_max: Num,
-    pub amount_out_min: Num,
+    pub amount_in: Num,
+    pub amount_out: Num,
     pub receiver_address: String,
     pub deadline: Num,
 }
