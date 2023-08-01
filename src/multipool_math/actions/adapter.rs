@@ -72,27 +72,27 @@ impl MpAdapter for MockedAdapter {
             .to_owned())
     }
 
-    async fn transact_mint(&mut self, router_address: &str, params: &MintBurnTxnParams) -> Self::MintTxnResult {
+    async fn transact_mint(&mut self, _router_address: &str, params: &MintBurnTxnParams) -> Self::MintTxnResult {
         params.to_owned()
     }
 
-    async fn transact_burn(&mut self, router_address: &str, params: &MintBurnTxnParams) -> Self::BurnTxnResult {
+    async fn transact_burn(&mut self, _router_address: &str, params: &MintBurnTxnParams) -> Self::BurnTxnResult {
         params.to_owned()
     }
 
-    async fn transact_swap(&mut self, router_address: &str, params: &SwapTxnParams) -> Self::SwapTxnResult {
+    async fn transact_swap(&mut self, _router_address: &str, params: &SwapTxnParams) -> Self::SwapTxnResult {
         params.to_owned()
     }
 
-    async fn transact_mint_reversed(&mut self, router_address: &str, params: &MintBurnTxnParams) -> Self::MintTxnResult {
+    async fn transact_mint_reversed(&mut self, _router_address: &str, params: &MintBurnTxnParams) -> Self::MintTxnResult {
         params.to_owned()
     }
 
-    async fn transact_burn_reversed(&mut self, router_address: &str, params: &MintBurnTxnParams) -> Self::BurnTxnResult {
+    async fn transact_burn_reversed(&mut self, _router_address: &str, params: &MintBurnTxnParams) -> Self::BurnTxnResult {
         params.to_owned()
     }
 
-    async fn transact_swap_reversed(&mut self, router_address: &str, params: &SwapTxnParams) -> Self::SwapTxnResult {
+    async fn transact_swap_reversed(&mut self, _router_address: &str, params: &SwapTxnParams) -> Self::SwapTxnResult {
         params.to_owned()
     }
 }

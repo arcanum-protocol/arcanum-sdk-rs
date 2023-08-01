@@ -46,10 +46,8 @@ abigen!(
     derives(serde::Deserialize, serde::Serialize);
 );
 
-abigen!();
-
 impl<M: Middleware + Clone, S: Signer> EthersConnection<M, S> {
-    fn new(middleware: M, signer: S) -> Self {
+    pub fn new(middleware: M, signer: S) -> Self {
         Self {
             provider: middleware.clone(),
             signer: Arc::new(SignerMiddleware::new(middleware, signer)),
@@ -74,8 +72,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         address: &str,
         asset: &str,
     ) -> Result<crate::multipool_math::MpAsset, Self::Error> {
-        let address: Address = address.parse().map_err(|e| QueryError::IvalidAddress)?;
-        let asset: Address = asset.parse().map_err(|e| QueryError::IvalidAddress)?;
+        let address: Address = address.parse().map_err(|_e| QueryError::IvalidAddress)?;
+        let asset: Address = asset.parse().map_err(|_e| QueryError::IvalidAddress)?;
         Multipool::new(address, self.signer.clone())
             .get_assets(asset)
             .call()
@@ -88,7 +86,7 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         &mut self,
         address: &str,
     ) -> Result<crate::multipool_math::MpContext, Self::Error> {
-        let address: Address = address.parse().map_err(|e| QueryError::IvalidAddress)?;
+        let address: Address = address.parse().map_err(|_e| QueryError::IvalidAddress)?;
         Multipool::new(address, self.signer.clone())
             .get_trading_context()
             .call()
@@ -101,7 +99,7 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         &mut self,
         address: &str,
     ) -> Result<crate::multipool_math::MpContext, Self::Error> {
-        let address: Address = address.parse().map_err(|e| QueryError::IvalidAddress)?;
+        let address: Address = address.parse().map_err(|_e| QueryError::IvalidAddress)?;
         Multipool::new(address, self.signer.clone())
             .get_burn_context()
             .call()
@@ -114,7 +112,7 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         &mut self,
         address: &str,
     ) -> Result<crate::multipool_math::MpContext, Self::Error> {
-        let address: Address = address.parse().map_err(|e| QueryError::IvalidAddress)?;
+        let address: Address = address.parse().map_err(|_e| QueryError::IvalidAddress)?;
         Multipool::new(address, self.signer.clone())
             .get_mint_context()
             .call()
@@ -127,7 +125,7 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         &mut self,
         address: &str,
     ) -> Result<crate::num::num::Num, Self::Error> {
-        let address: Address = address.parse().map_err(|e| QueryError::IvalidAddress)?;
+        let address: Address = address.parse().map_err(|_e| QueryError::IvalidAddress)?;
         ERC20::new(address, self.signer.clone())
             .total_supply()
             .call()
@@ -145,8 +143,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         router_address: &str,
         params: &crate::multipool_math::actions::settings::MintBurnTxnParams,
     ) -> Self::MintTxnResult {
-        let router_address: Address = router_address.parse().map_err(|e| anyhow::anyhow!(""))?;
-        let pool_address: Address = params.pool_address.parse().map_err(|e| anyhow::anyhow!(""))?;
+        let router_address: Address = router_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
+        let pool_address: Address = params.pool_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
         ERC20::new(pool_address, self.signer.clone())
             .approve(router_address, params.amount.into())
             .call()
@@ -155,10 +153,10 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         MultipoolRouter::new(router_address, self.signer.clone())
             .mint_with_shares_out(
                 pool_address,
-                params.asset_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.asset_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.shares.into(),
                 params.amount.into(),
-                params.receiver_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.receiver_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.deadline.into()
             )
             .call()
@@ -172,8 +170,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         router_address: &str,
         params: &crate::multipool_math::actions::settings::MintBurnTxnParams,
     ) -> Self::MintTxnResult {
-        let router_address: Address = router_address.parse().map_err(|e| anyhow::anyhow!(""))?;
-        let asset_in_address: Address = params.asset_address.parse().map_err(|e| anyhow::anyhow!(""))?;
+        let router_address: Address = router_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
+        let asset_in_address: Address = params.asset_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
         ERC20::new(asset_in_address, self.signer.clone())
             .approve(router_address, params.amount.into())
             .call()
@@ -181,11 +179,11 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
             .map_err(|_| anyhow::anyhow!("Failed to mint"))?;
         MultipoolRouter::new(router_address, self.signer.clone())
             .mint_with_amount_in(
-                params.pool_address.parse().map_err(|e| anyhow::anyhow!(""))?,
-                params.asset_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.pool_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
+                params.asset_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.amount.into(),
                 params.shares.into(),
-                params.receiver_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.receiver_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.deadline.into()
             )
             .call()
@@ -199,8 +197,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         router_address: &str,
         params: &crate::multipool_math::actions::settings::MintBurnTxnParams,
     ) -> Self::BurnTxnResult {
-        let router_address: Address = router_address.parse().map_err(|e| anyhow::anyhow!(""))?;
-        let pool_address: Address = params.pool_address.parse().map_err(|e| anyhow::anyhow!(""))?;
+        let router_address: Address = router_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
+        let pool_address: Address = params.pool_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
         ERC20::new(pool_address, self.signer.clone())
             .approve(router_address, params.shares.into())
             .call()
@@ -209,10 +207,10 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         MultipoolRouter::new(router_address, self.signer.clone())
             .burn_with_shares_in(
                 pool_address,
-                params.asset_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.asset_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.shares.into(),
                 params.amount.into(),
-                params.receiver_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.receiver_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.deadline.into()
             )
             .call()
@@ -226,8 +224,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         router_address: &str,
         params: &crate::multipool_math::actions::settings::MintBurnTxnParams,
     ) -> Self::BurnTxnResult {
-        let router_address: Address = router_address.parse().map_err(|e| anyhow::anyhow!(""))?;
-        let pool_address: Address = params.pool_address.parse().map_err(|e| anyhow::anyhow!(""))?;
+        let router_address: Address = router_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
+        let pool_address: Address = params.pool_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
         ERC20::new(pool_address, self.signer.clone())
             .approve(router_address, params.shares.into())
             .call()
@@ -236,10 +234,10 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         MultipoolRouter::new(router_address, self.signer.clone())
             .burn_with_amount_out(
                 pool_address,
-                params.asset_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.asset_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.amount.into(),
                 params.shares.into(),
-                params.receiver_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.receiver_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.deadline.into()
             )
             .call()
@@ -253,8 +251,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         router_address: &str,
         params: &crate::multipool_math::actions::settings::SwapTxnParams,
     ) -> Self::SwapTxnResult {
-        let router_address: Address = router_address.parse().map_err(|e| anyhow::anyhow!(""))?;
-        let asset_in_address: Address = params.asset_in_address.parse().map_err(|e| anyhow::anyhow!(""))?;
+        let router_address: Address = router_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
+        let asset_in_address: Address = params.asset_in_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
         ERC20::new(asset_in_address, self.signer.clone())
             .approve(router_address, params.shares.into())
             .call()
@@ -262,12 +260,12 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
             .map_err(|_| anyhow::anyhow!("Failed to mint"))?;
         MultipoolRouter::new(router_address, self.signer.clone())
             .swap_with_amount_in(
-                params.pool_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.pool_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 asset_in_address,
-                params.asset_out_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.asset_out_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.amount_in.into(),
                 params.amount_out.into(),
-                params.receiver_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.receiver_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.deadline.into()
             )
             .call()
@@ -281,8 +279,8 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
         router_address: &str,
         params: &crate::multipool_math::actions::settings::SwapTxnParams,
     ) -> Self::SwapTxnResult {
-        let router_address: Address = router_address.parse().map_err(|e| anyhow::anyhow!(""))?;
-        let asset_in_address: Address = params.asset_in_address.parse().map_err(|e| anyhow::anyhow!(""))?;
+        let router_address: Address = router_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
+        let asset_in_address: Address = params.asset_in_address.parse().map_err(|_e| anyhow::anyhow!(""))?;
         ERC20::new(asset_in_address, self.signer.clone())
             .approve(router_address, params.shares.into())
             .call()
@@ -290,12 +288,12 @@ impl<M: Middleware, S: Signer> MpAdapter for EthersConnection<M, S> {
             .map_err(|_| anyhow::anyhow!("Failed to mint"))?;
         MultipoolRouter::new(router_address, self.signer.clone())
             .swap_with_amount_out(
-                params.pool_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.pool_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 asset_in_address,
-                params.asset_out_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.asset_out_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.amount_out.into(),
                 params.amount_in.into(),
-                params.receiver_address.parse().map_err(|e| anyhow::anyhow!(""))?,
+                params.receiver_address.parse().map_err(|_e| anyhow::anyhow!(""))?,
                 params.deadline.into()
             )
             .call()
